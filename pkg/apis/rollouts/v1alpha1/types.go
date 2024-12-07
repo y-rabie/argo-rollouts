@@ -335,6 +335,15 @@ type AnalysisRunStrategy struct {
 	UnsuccessfulRunHistoryLimit *int32 `json:"unsuccessfulRunHistoryLimit,omitempty" protobuf:"varint,2,opt,name=unsuccessfulRunHistoryLimit"`
 }
 
+type ExternallyManagedWeight struct {
+	// ServiceName is the Kubernetes service name traffic is being sent to
+	ServiceName string `json:"serviceName,omitempty" protobuf:"bytes,1,opt,name=serviceName"`
+	// ServicePort refers to the port that the Ingress action should route traffic to
+	ServicePort int32 `json:"servicePort" protobuf:"varint,2,opt,name=servicePort"`
+	// Weight is an percentage of traffic being sent to this destination
+	Weight int32 `json:"weight" protobuf:"varint,3,opt,name=weight"`
+}
+
 // ALBTrafficRouting configuration for ALB ingress controller to control traffic routing
 type ALBTrafficRouting struct {
 	// Ingress refers to the name of an `Ingress` resource in the same namespace as the `Rollout`
@@ -352,6 +361,8 @@ type ALBTrafficRouting struct {
 	// Ingresses refers to the name of an `Ingress` resource in the same namespace as the `Rollout` in a multi ingress scenario
 	// +optional
 	Ingresses []string `json:"ingresses,omitempty" protobuf:"bytes,6,opt,name=ingresses"`
+	// ExternallyManagedWeights
+	ExternallyManagedWeights []*ExternallyManagedWeight `json:"externallyManagedWeights,omitempty" protobuf:"bytes,7,opt,name=externallyManagedWeights"`
 }
 
 type StickinessConfig struct {

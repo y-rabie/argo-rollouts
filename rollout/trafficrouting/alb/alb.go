@@ -370,6 +370,17 @@ func getForwardActionString(r *v1alpha1.Rollout, port int32, desiredWeight int32
 		stableWeight -= dest.Weight
 	}
 
+	//
+	for _, ext := range r.Spec.Strategy.Canary.TrafficRouting.ALB.ExternallyManagedWeights {
+		// Create target group for each externally managed weight
+		targetGroups = append(targetGroups, ingressutil.ALBTargetGroup{
+			ServiceName: ext.ServiceName,
+			ServicePort: strconv.Itoa(int(ext.ServicePort)),
+			Weight:      pointer.Int64Ptr(int64(ext.Weight)),
+		})
+		stableWeight -= ext.Weight
+	}
+
 	// Create target group for stable with updated stableWeight
 	targetGroups = append(targetGroups, ingressutil.ALBTargetGroup{
 		ServiceName: stableService,
