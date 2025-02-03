@@ -2,6 +2,7 @@ package defaults
 
 import (
 	"os"
+	"regexp"
 	"strconv"
 	"strings"
 	"time"
@@ -66,16 +67,18 @@ const (
 )
 
 var (
-	defaultVerifyTargetGroup     = false
-	traefikAPIGroup              = DefaultTraefikAPIGroup
-	traefikVersion               = DefaultTraefikVersion
-	istioAPIVersion              = DefaultIstioVersion
-	ambassadorAPIVersion         = DefaultAmbassadorVersion
-	smiAPIVersion                = DefaultSMITrafficSplitVersion
-	targetGroupBindingAPIVersion = DefaultTargetGroupBindingAPIVersion
-	appmeshCRDVersion            = DefaultAppMeshCRDVersion
-	defaultMetricCleanupDelay    = DefaultMetricCleanupDelay
-	defaultDescribeTagsLimit     = DefaultDescribeTagsLimit
+	defaultVerifyTargetGroup                       = false
+	traefikAPIGroup                                = DefaultTraefikAPIGroup
+	traefikVersion                                 = DefaultTraefikVersion
+	istioAPIVersion                                = DefaultIstioVersion
+	ambassadorAPIVersion                           = DefaultAmbassadorVersion
+	smiAPIVersion                                  = DefaultSMITrafficSplitVersion
+	targetGroupBindingAPIVersion                   = DefaultTargetGroupBindingAPIVersion
+	appmeshCRDVersion                              = DefaultAppMeshCRDVersion
+	defaultMetricCleanupDelay                      = DefaultMetricCleanupDelay
+	defaultDescribeTagsLimit                       = DefaultDescribeTagsLimit
+	defaultExposeAllRolloutLabels                  = true
+	defaultExposeRolloutLabels    []*regexp.Regexp = nil
 )
 
 const (
@@ -353,4 +356,29 @@ func GetDescribeTagsLimit() int {
 // SetDescribeTagsLimit sets the limit of resources can be requested in a single call
 func SetDescribeTagsLimit(limit int) {
 	defaultDescribeTagsLimit = limit
+}
+
+func SetExposeAllRolloutLabels(b bool) {
+	defaultExposeAllRolloutLabels = b
+}
+
+func GetExposeAllRolloutLabels() bool {
+	return defaultExposeAllRolloutLabels
+}
+
+func SetExposeRolloutLabels(labels []string) (string, error) {
+	defaultExposeRolloutLabels = make([]*regexp.Regexp, len(labels))
+	for _, label := range labels {
+		r, err := regexp.Compile(label)
+		if err != nil {
+			defaultExposeRolloutLabels = nil
+			return label, err
+		}
+		defaultExposeRolloutLabels = append(defaultExposeRolloutLabels, r)
+	}
+	return "", nil
+}
+
+func GetExposeRolloutLabels() []*regexp.Regexp {
+	return defaultExposeRolloutLabels
 }

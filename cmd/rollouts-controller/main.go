@@ -84,6 +84,8 @@ func newCommand() *cobra.Command {
 		selfServiceNotificationEnabled bool
 		controllersEnabled             []string
 		pprofAddress                   string
+		exposeRolloutLabels            []string
+		exposeAllRolloutLabels         bool
 	)
 	electOpts := controller.NewLeaderElectionOptions()
 	var command = cobra.Command{
@@ -125,6 +127,14 @@ func newCommand() *cobra.Command {
 			if namespaced {
 				namespace = configNS
 				log.Infof("Using namespace %s", namespace)
+			}
+
+			if exposeAllRolloutLabels && exposeRolloutLabels != nil {
+				log.Warn("Both --expose-all-rollout-labels and --expose-rollout-labels have been specified. Exposing all labels.")
+			}
+			defaults.SetExposeAllRolloutLabels(exposeAllRolloutLabels)
+			if l, err := defaults.SetExposeRolloutLabels(exposeRolloutLabels); err != nil {
+				log.Warnf("Error compiling the rollout label expression %s: %v", l, err)
 			}
 
 			k8sRequestProvider := &metrics.K8sRequestsCountProvider{}
@@ -323,6 +333,8 @@ func newCommand() *cobra.Command {
 	command.Flags().BoolVar(&selfServiceNotificationEnabled, "self-service-notification-enabled", false, "Allows rollouts controller to pull notification config from the namespace that the rollout resource is in. This is useful for self-service notification.")
 	command.Flags().StringSliceVar(&controllersEnabled, "controllers", nil, "Explicitly specify the list of controllers to run, currently only supports 'analysis', eg. --controller=analysis. Default: all controllers are enabled")
 	command.Flags().StringVar(&pprofAddress, "enable-pprof-address", "", "Enable pprof profiling on controller by providing a server address.")
+	command.Flags().StringSliceVar(&exposeRolloutLabels, "expose-rollout-labels", nil, "Specify a list of regex expressions for labels existing on a rollout to expose as tags in metrics.")
+	command.Flags().BoolVar(&exposeAllRolloutLabels, "expose-all-rollout-labels", false, "Expose all labels existing on a rollout as tags in metrics. Mutually exclusive with --expose-rollout-labels")
 	return &command
 }
 

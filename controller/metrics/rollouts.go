@@ -1,6 +1,9 @@
 package metrics
 
 import (
+	"fmt"
+	"regexp"
+
 	"github.com/prometheus/client_golang/prometheus"
 	log "github.com/sirupsen/logrus"
 	"k8s.io/apimachinery/pkg/labels"
@@ -32,6 +35,8 @@ const (
 	RolloutAbort RolloutPhase = "Abort"
 )
 
+var invalidLabelCharRE = regexp.MustCompile(`[^a-zA-Z0-9_]`)
+
 type rolloutCollector struct {
 	store rolloutlister.RolloutLister
 }
@@ -45,7 +50,12 @@ func NewRolloutCollector(rolloutLister rolloutlister.RolloutLister) prometheus.C
 
 // Describe implements the prometheus.Collector interface
 func (c *rolloutCollector) Describe(ch chan<- *prometheus.Desc) {
-	ch <- MetricRolloutInfo
+	ch <- prometheus.NewDesc(
+		MetricRolloutInfo.Name,
+		MetricRolloutInfo.Help,
+		nil,
+		nil,
+	)
 }
 
 // Collect implements the prometheus.Collector interface
@@ -119,14 +129,47 @@ func getStrategyAndTrafficRouter(rollout *v1alpha1.Rollout) (string, string) {
 	return strategy, trafficRouter
 }
 
+// Taken from kube-state-metrics: https://github.com/kubernetes/kube-state-metrics/tree/main/internal/store/utils.go#L132
+// sanitizeLabelName replaces all invalid characters with an underscore.
+func sanitizeLabelName(s string) string {
+	return invalidLabelCharRE.ReplaceAllString(s, "_")
+}
+
+func anyMatch(rs []*regexp.Regexp, s string) bool {
+	matches := false
+	for _, r := range rs {
+		if r.Match([]byte(s)) {
+			matches = true
+			break
+		}
+	}
+	return matches
+}
+
 func collectRollouts(ch chan<- prometheus.Metric, rollout *v1alpha1.Rollout) {
 	strategyType, trafficRouter := getStrategyAndTrafficRouter(rollout)
 	calculatedPhase := calculatePhase(rollout)
 
-	addGauge := func(desc *prometheus.Desc, v float64, lv ...string) {
-		lv = append([]string{rollout.Namespace, rollout.Name}, lv...)
-		ch <- prometheus.MustNewConstMetric(desc, prometheus.GaugeValue, v, lv...)
+	addGauge := func(d DescInfo, v float64, lv ...string) {
+
+		labelNames := make([]string, 0)
+		labelNames = append(labelNames, d.VariableLabels...)
+
+		labelValues := make([]string, 0)
+		labelValues = append(append(labelValues, rollout.Namespace, rollout.Name), lv...)
+
+		for k, v := range rollout.Labels {
+			if !defaults.GetExposeAllRolloutLabels() && !anyMatch(defaults.GetExposeRolloutLabels(), k) {
+				continue
+			}
+			labelNames = append(labelNames, fmt.Sprintf("kube_label_%s", sanitizeLabelName(k)))
+			labelValues = append(labelValues, v)
+		}
+
+		desc := prometheus.NewDesc(d.Name, d.Help, prometheus.UnconstrainedLabels(labelNames), nil)
+		ch <- prometheus.MustNewConstMetric(desc, prometheus.GaugeValue, v, labelValues...)
 	}
+
 	addGauge(MetricRolloutInfo, 1, strategyType, trafficRouter, string(calculatedPhase))
 	addGauge(MetricRolloutInfoReplicasAvailable, float64(rollout.Status.AvailableReplicas))
 	addGauge(MetricRolloutInfoReplicasUnavailable, float64(rollout.Status.Replicas-rollout.Status.AvailableReplicas))

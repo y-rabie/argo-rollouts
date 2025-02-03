@@ -12,6 +12,12 @@ var (
 	namespaceNameLabels = []string{"namespace", "name"}
 )
 
+type DescInfo struct {
+	Name           string
+	Help           string
+	VariableLabels []string
+}
+
 // Rollout metrics
 var (
 	MetricRolloutReconcile = prometheus.NewHistogramVec(
@@ -31,40 +37,35 @@ var (
 		namespaceNameLabels,
 	)
 
-	MetricRolloutInfo = prometheus.NewDesc(
-		"rollout_info",
-		"Information about rollout.",
-		append(namespaceNameLabels, "strategy", "traffic_router", "phase"),
-		nil,
-	)
+	MetricRolloutInfo = DescInfo{
+		Name:           "rollout_info",
+		Help:           "Information about rollout.",
+		VariableLabels: append(namespaceNameLabels, "strategy", "traffic_router", "phase"),
+	}
 
-	MetricRolloutInfoReplicasAvailable = prometheus.NewDesc(
-		"rollout_info_replicas_available",
-		"The number of available replicas per rollout.",
-		namespaceNameLabels,
-		nil,
-	)
+	MetricRolloutInfoReplicasAvailable = DescInfo{
+		Name:           "rollout_info_replicas_available",
+		Help:           "The number of available replicas per rollout.",
+		VariableLabels: namespaceNameLabels,
+	}
 
-	MetricRolloutInfoReplicasUnavailable = prometheus.NewDesc(
-		"rollout_info_replicas_unavailable",
-		"The number of unavailable replicas per rollout.",
-		namespaceNameLabels,
-		nil,
-	)
+	MetricRolloutInfoReplicasUnavailable = DescInfo{
+		Name:           "rollout_info_replicas_unavailable",
+		Help:           "The number of unavailable replicas per rollout.",
+		VariableLabels: namespaceNameLabels,
+	}
 
-	MetricRolloutInfoReplicasDesired = prometheus.NewDesc(
-		"rollout_info_replicas_desired",
-		"The number of desired replicas per rollout.",
-		namespaceNameLabels,
-		nil,
-	)
+	MetricRolloutInfoReplicasDesired = DescInfo{
+		Name:           "rollout_info_replicas_desired",
+		Help:           "The number of desired replicas per rollout.",
+		VariableLabels: namespaceNameLabels,
+	}
 
-	MetricRolloutInfoReplicasUpdated = prometheus.NewDesc(
-		"rollout_info_replicas_updated",
-		"The number of updated replicas per rollout.",
-		namespaceNameLabels,
-		nil,
-	)
+	MetricRolloutInfoReplicasUpdated = DescInfo{
+		Name:           "rollout_info_replicas_updated",
+		Help:           "The number of updated replicas per rollout.",
+		VariableLabels: namespaceNameLabels,
+	}
 
 	MetricRolloutEventsTotal = prometheus.NewCounterVec(
 		prometheus.CounterOpts{
@@ -75,12 +76,11 @@ var (
 	)
 
 	// DEPRECATED in favor of rollout_info
-	MetricRolloutPhase = prometheus.NewDesc(
-		"rollout_phase",
-		"Information on the state of the rollout (DEPRECATED - use rollout_info)",
-		append(namespaceNameLabels, "strategy", "phase"),
-		nil,
-	)
+	MetricRolloutPhase = DescInfo{
+		Name:           "rollout_phase",
+		Help:           "Information on the state of the rollout (DEPRECATED - use rollout_info)",
+		VariableLabels: append(namespaceNameLabels, "strategy", "phase"),
+	}
 )
 
 // AnalysisRun metrics

@@ -49,6 +49,40 @@ status:
   replicas: 1
   availableReplicas: 1
 `
+	fakeRolloutWithLabels = `
+apiVersion: argoproj.io/v1alpha1
+kind: Rollout
+metadata:
+  name: guestbook-bluegreen
+  namespace: default
+  labels:
+    app.kubernetes.io/component: core
+    helm.sh/chart: app
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: guestbook
+  template:
+    metadata:
+      labels:
+        app: guestbook
+    spec:
+      containers:
+      - name: guestbook
+        image: argoproj/rollouts-demo:blue
+        ports:
+        - containerPort: 80
+  minReadySeconds: 30
+  revisionHistoryLimit: 3
+  strategy:
+    blueGreen:
+      activeService: active-service
+      previewService: preview-service
+status:
+  replicas: 1
+  availableReplicas: 1
+`
 
 	fakeCanaryRollout = `
 apiVersion: argoproj.io/v1alpha1
@@ -122,7 +156,29 @@ rollout_info_replicas_unavailable{name="guestbook-bluegreen",namespace="default"
 # TYPE rollout_info_replicas_updated gauge
 rollout_info_replicas_updated{name="guestbook-bluegreen",namespace="default"} 0`,
 		},
-
+		{
+			fakeRolloutWithLabels,
+			conditions.NewRolloutCondition(v1alpha1.RolloutProgressing, corev1.ConditionFalse, "Progressing", ""),
+			`
+# HELP rollout_info Information about rollout.
+# TYPE rollout_info gauge
+rollout_info{kube_label_app_kubernetes_io_component="core",kube_label_helm_sh_chart="app",name="guestbook-bluegreen",namespace="default",phase="Progressing",strategy="blueGreen",traffic_router=""} 1
+# HELP rollout_info_replicas_available The number of available replicas per rollout.
+# TYPE rollout_info_replicas_available gauge
+rollout_info_replicas_available{kube_label_app_kubernetes_io_component="core",kube_label_helm_sh_chart="app",name="guestbook-bluegreen",namespace="default"} 1
+# HELP rollout_info_replicas_desired The number of desired replicas per rollout.
+# TYPE rollout_info_replicas_desired gauge
+rollout_info_replicas_desired{kube_label_app_kubernetes_io_component="core",kube_label_helm_sh_chart="app",name="guestbook-bluegreen",namespace="default"} 1
+# HELP rollout_info_replicas_unavailable The number of unavailable replicas per rollout.
+# TYPE rollout_info_replicas_unavailable gauge
+rollout_info_replicas_unavailable{kube_label_app_kubernetes_io_component="core",kube_label_helm_sh_chart="app",name="guestbook-bluegreen",namespace="default"} 0
+# HELP rollout_info_replicas_unavailable The number of unavailable replicas per rollout.
+# TYPE rollout_info_replicas_unavailable gauge
+rollout_info_replicas_unavailable{kube_label_app_kubernetes_io_component="core",kube_label_helm_sh_chart="app",name="guestbook-bluegreen",namespace="default"} 0
+# HELP rollout_info_replicas_updated The number of updated replicas per rollout.
+# TYPE rollout_info_replicas_updated gauge
+rollout_info_replicas_updated{kube_label_app_kubernetes_io_component="core",kube_label_helm_sh_chart="app",name="guestbook-bluegreen",namespace="default"} 0`,
+		},
 		{
 			fakeRollout,
 			conditions.NewRolloutCondition(v1alpha1.RolloutProgressing, corev1.ConditionFalse, conditions.FailedRSCreateReason, "test"),
